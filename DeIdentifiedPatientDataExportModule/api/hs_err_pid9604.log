@@ -1,0 +1,154 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 40968 bytes for Chunk::new
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   In 32 bit mode, the process size limit was hit
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Use 64 bit Java on a 64 bit OS
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (allocation.cpp:317), pid=9604, tid=7940
+#
+# JRE version: 6.0_38-b05
+# Java VM: Java HotSpot(TM) Client VM (20.13-b02 mixed mode windows-x86 )
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x01778400):  JavaThread "C1 CompilerThread0" daemon [_thread_in_native, id=7940, stack(0x17990000,0x179e0000)]
+
+Stack: [0x17990000,0x179e0000],  sp=0x179df868,  free space=318k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+
+[error occurred during error reporting (printing native stack), id 0xc0000005]
+
+
+Current CompileTask:
+C1:  35430 2074  !   org.h2.expression.Function.getValueWithArgs(Lorg/h2/engine/Session;[Lorg/h2/expression/Expression;)Lorg/h2/value/Value; (2481 bytes)
+
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x18177400 JavaThread "Keep-Alive-Timer" daemon [_thread_blocked, id=10128, stack(0x18d90000,0x18de0000)]
+  0x183c8000 JavaThread "net.sf.ehcache.CacheManager@14f7a86" daemon [_thread_blocked, id=6808, stack(0x18ca0000,0x18cf0000)]
+  0x17ad2000 JavaThread "com.mchange.v2.async.ThreadPoolAsynchronousRunner$PoolThread-#2" daemon [_thread_blocked, id=4980, stack(0x18c50000,0x18ca0000)]
+  0x17ad7000 JavaThread "com.mchange.v2.async.ThreadPoolAsynchronousRunner$PoolThread-#1" daemon [_thread_blocked, id=7296, stack(0x18c00000,0x18c50000)]
+  0x17ad6c00 JavaThread "com.mchange.v2.async.ThreadPoolAsynchronousRunner$PoolThread-#0" daemon [_thread_blocked, id=9084, stack(0x18bb0000,0x18c00000)]
+  0x17bb1000 JavaThread "Timer-0" daemon [_thread_blocked, id=2484, stack(0x18b10000,0x18b60000)]
+  0x0177c800 JavaThread "Low Memory Detector" daemon [_thread_blocked, id=3896, stack(0x179e0000,0x17a30000)]
+=>0x01778400 JavaThread "C1 CompilerThread0" daemon [_thread_in_native, id=7940, stack(0x17990000,0x179e0000)]
+  0x01773c00 JavaThread "Attach Listener" daemon [_thread_blocked, id=3468, stack(0x17940000,0x17990000)]
+  0x01769400 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=8616, stack(0x178f0000,0x17940000)]
+  0x0173a800 JavaThread "Finalizer" daemon [_thread_blocked, id=9004, stack(0x178a0000,0x178f0000)]
+  0x01739400 JavaThread "Reference Handler" daemon [_thread_blocked, id=9384, stack(0x17850000,0x178a0000)]
+  0x002f9800 JavaThread "main" [_thread_in_Java, id=7228, stack(0x00280000,0x002d0000)]
+
+Other Threads:
+  0x01734800 VMThread [stack: 0x17800000,0x17850000] [id=9316]
+  0x01787800 WatcherThread [stack: 0x17a30000,0x17a80000] [id=7248]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap
+ def new generation   total 6400K, used 2024K [0x037a0000, 0x03e90000, 0x08cf0000)
+  eden space 5696K,  35% used [0x037a0000, 0x0399a238, 0x03d30000)
+  from space 704K,   0% used [0x03d30000, 0x03d30000, 0x03de0000)
+  to   space 704K,   0% used [0x03de0000, 0x03de0000, 0x03e90000)
+ tenured generation   total 14180K, used 14179K [0x08cf0000, 0x09ac9000, 0x137a0000)
+   the space 14180K,  99% used [0x08cf0000, 0x09ac8ff8, 0x09ac9000, 0x09ac9000)
+ compacting perm gen  total 25600K, used 25544K [0x137a0000, 0x150a0000, 0x177a0000)
+   the space 25600K,  99% used [0x137a0000, 0x15092378, 0x15092400, 0x150a0000)
+No shared spaces configured.
+
+Code Cache  [0x017a0000, 0x01c80000, 0x037a0000)
+ total_blobs=2268 nmethods=2087 adapters=115 free_code_cache=28475712 largest_free_block=320
+
+Dynamic libraries:
+0x00400000 - 0x00425000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\java.exe
+0x77940000 - 0x77a7c000 	C:\Windows\SYSTEM32\ntdll.dll
+0x765f0000 - 0x766c4000 	C:\Windows\system32\kernel32.dll
+0x75c70000 - 0x75cbb000 	C:\Windows\system32\KERNELBASE.dll
+0x76730000 - 0x767d0000 	C:\Windows\system32\ADVAPI32.dll
+0x75ce0000 - 0x75d8c000 	C:\Windows\system32\msvcrt.dll
+0x77a90000 - 0x77aa9000 	C:\Windows\SYSTEM32\sechost.dll
+0x760d0000 - 0x76171000 	C:\Windows\system32\RPCRT4.dll
+0x7c340000 - 0x7c396000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\msvcr71.dll
+0x6d8c0000 - 0x6db70000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\client\jvm.dll
+0x75e30000 - 0x75ef9000 	C:\Windows\system32\USER32.dll
+0x77ac0000 - 0x77b0e000 	C:\Windows\system32\GDI32.dll
+0x75e20000 - 0x75e2a000 	C:\Windows\system32\LPK.dll
+0x767d0000 - 0x7686d000 	C:\Windows\system32\USP10.dll
+0x73cf0000 - 0x73d22000 	C:\Windows\system32\WINMM.dll
+0x763e0000 - 0x763ff000 	C:\Windows\system32\IMM32.DLL
+0x76870000 - 0x7693c000 	C:\Windows\system32\MSCTF.dll
+0x75880000 - 0x758cc000 	C:\Windows\system32\apphelp.dll
+0x6d870000 - 0x6d87c000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\verify.dll
+0x6d3d0000 - 0x6d3ef000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\java.dll
+0x6d8b0000 - 0x6d8bf000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\zip.dll
+0x6d0b0000 - 0x6d1fc000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\awt.dll
+0x6ff80000 - 0x6ffd1000 	C:\Windows\system32\WINSPOOL.DRV
+0x777e0000 - 0x7793c000 	C:\Windows\system32\ole32.dll
+0x74940000 - 0x74ade000 	C:\Windows\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_6.0.7601.17514_none_41e6975e2bd6f2b2\COMCTL32.dll
+0x77b10000 - 0x77b67000 	C:\Windows\system32\SHLWAPI.dll
+0x6d6b0000 - 0x6d6c3000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\net.dll
+0x76530000 - 0x76565000 	C:\Windows\system32\WS2_32.dll
+0x76380000 - 0x76386000 	C:\Windows\system32\NSI.dll
+0x753c0000 - 0x753fc000 	C:\Windows\system32\mswsock.dll
+0x753b0000 - 0x753b6000 	C:\Windows\System32\wship6.dll
+0x73e70000 - 0x73e80000 	C:\Windows\system32\NLAapi.dll
+0x6f900000 - 0x6f910000 	C:\Windows\system32\napinsp.dll
+0x6f8e0000 - 0x6f8f2000 	C:\Windows\system32\pnrpnsp.dll
+0x6f8d0000 - 0x6f8dd000 	C:\Windows\system32\wshbth.dll
+0x75280000 - 0x752c4000 	C:\Windows\system32\DNSAPI.dll
+0x6f8c0000 - 0x6f8c8000 	C:\Windows\System32\winrnr.dll
+0x74e20000 - 0x74e25000 	C:\Windows\System32\wshtcpip.dll
+0x73150000 - 0x7316c000 	C:\Windows\system32\IPHLPAPI.DLL
+0x73140000 - 0x73147000 	C:\Windows\system32\WINNSI.DLL
+0x6f8b0000 - 0x6f8b6000 	C:\Windows\system32\rasadhlp.dll
+0x72cc0000 - 0x72cf8000 	C:\Windows\System32\fwpuclnt.dll
+0x75400000 - 0x75416000 	C:\Windows\system32\CRYPTSP.dll
+0x751a0000 - 0x751db000 	C:\Windows\system32\rsaenh.dll
+0x75000000 - 0x75017000 	C:\Windows\system32\USERENV.dll
+0x75980000 - 0x7598b000 	C:\Windows\system32\profapi.dll
+0x75900000 - 0x7590c000 	C:\Windows\system32\CRYPTBASE.dll
+0x6d600000 - 0x6d609000 	C:\Program Files\Java\jdk1.6.0_38\jre\bin\management.dll
+0x77ab0000 - 0x77ab5000 	C:\Windows\system32\PSAPI.DLL
+
+VM Arguments:
+java_command: C:\Users\SARA\Desktop\OpenMRS\de\DeIdentifiedPatientDataExportModule\api\target\surefire\surefirebooter1696318498013781928.jar C:\Users\SARA\Desktop\OpenMRS\de\DeIdentifiedPatientDataExportModule\api\target\surefire\surefire54996390387956349tmp C:\Users\SARA\Desktop\OpenMRS\de\DeIdentifiedPatientDataExportModule\api\target\surefire\surefire8292399611077150593tmp
+Launcher Type: SUN_STANDARD
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jdk1.6.0_38
+JRE_HOME=C:\Program Files\Java\jre7
+CLASSPATH=C:\Program Files\Java\jdk1.6.0_38\bin;C:\gsoc\apache-tomcat-7.0.35\lib\servlet-api.jar;C:\Program Files\Java\jdk1.6.0_38\lib;
+PATH=C:\Program Files\Common Files\Microsoft Shared\Microsoft Online Services;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Java\jdk1.6.0_38\bin;C:\Program Files\Hewlett-Packard\HP ProtectTools Security Manager\Bin\;C:\gsoc\apache-maven-3.0.4-bin\apache-maven-3.0.4\bin;C:\TurboC3\BIN;C:\Program Files\Microsoft SQL Server\100\Tools\Binn\;C:\Program Files\Microsoft SQL Server\100\DTS\Binn\
+USERNAME=SARA
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=x86 Family 6 Model 42 Stepping 7, GenuineIntel
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS: Windows 7 Build 7601 Service Pack 1
+
+CPU:total 4 (2 cores per cpu, 2 threads per core) family 6 model 42 stepping 7, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, ht
+
+Memory: 4k page, physical 3086712k(312884k free), swap 12345096k(0k free)
+
+vm_info: Java HotSpot(TM) Client VM (20.13-b02) for windows-x86 JRE (1.6.0_38-b05), built on Nov 14 2012 01:54:26 by "java_re" with MS VC++ 7.1 (VS2003)
+
+time: Fri Jul 05 11:12:07 2013
+elapsed time: 35 seconds
+
