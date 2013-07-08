@@ -13,6 +13,9 @@
  */
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api;
 
+import javax.servlet.http.HttpServletResponse;
+import javax.swing.text.Document;
+
 import org.openmrs.api.OpenmrsService;
 import org.springframework.transaction.annotation.Transactional;
 import org.openmrs.Patient;
@@ -30,5 +33,6 @@ import org.openmrs.Patient;
 @Transactional
 public interface DeIdentifiedExportService extends OpenmrsService {
      
-	public void findPatientId(Patient patient);
-}
+	public void generatePatientXML(Patient patient, HttpServletResponse response, String randomDOB);
+	public void extractPatientData(Patient patient, HttpServletResponse response);
+	}

@@ -13,18 +13,43 @@
  */
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.web.controller;
 
-import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.Charset;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.swing.text.Document;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
+import org.openmrs.Person;
+import org.openmrs.PersonAttribute;
+import org.openmrs.PersonName;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+/*
+import java.io.File;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+ 
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;*/
 /**
  * The main controller.
  */
@@ -34,13 +59,18 @@ public class  DeIdentifiedPatientDataExportModuleManageController {
 	protected final Log log = LogFactory.getLog(getClass());
 	
 	@RequestMapping(value = "/module/DeIdentifiedPatientDataExportModule/createProfile", method = RequestMethod.GET)
-	public void manage(ModelMap model, HttpServletRequest request, Patient patient) {
+	public void manage(ModelMap model, Patient patient) {
 		model.addAttribute("user", Context.getAuthenticatedUser());
+		System.out.println("magae");
 		
-		if(patient!=null){
-			DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
-			d.findPatientId(patient);
-		}
+	}
 	
+	@RequestMapping(value = "/module/DeIdentifiedPatientDataExportModule/new", method = RequestMethod.GET)
+	public void new_manage(@RequestParam(value="patientId",required=true)Patient patient, HttpServletResponse response) {
+		
+		System.out.println("new_manage"+patient.getId());
+		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
+		d.extractPatientData(patient, response);
+		
 	}
 }
