@@ -13,12 +13,20 @@
  */
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletResponse;
 import javax.swing.text.Document;
 
+import org.openmrs.api.APIException;
 import org.openmrs.api.OpenmrsService;
+import org.openmrs.api.db.DAOException;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.openmrs.Concept;
+import org.openmrs.Obs;
 import org.openmrs.Patient;
+import org.openmrs.PersonAttributeType;
 
 /**
  * This service exposes module's core functionality. It is a Spring managed bean which is configured in moduleApplicationContext.xml.
@@ -33,6 +41,9 @@ import org.openmrs.Patient;
 @Transactional
 public interface DeIdentifiedExportService extends OpenmrsService {
      
-	public void generatePatientXML(Patient patient, HttpServletResponse response, String randomDOB);
+	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs);
 	public void extractPatientData(Patient patient, HttpServletResponse response);
-	}
+	public boolean saveConceptAsSections(List<Integer> concepts , String category) throws DAOException , APIException;
+	List<String> getConceptByCategory(String category);
+	public String accessLocationPropFile();
+}

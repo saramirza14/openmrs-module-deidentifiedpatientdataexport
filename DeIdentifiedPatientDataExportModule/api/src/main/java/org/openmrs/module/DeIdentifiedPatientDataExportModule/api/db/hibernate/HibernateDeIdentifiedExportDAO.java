@@ -13,9 +13,24 @@
  */
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.hibernate;
 
+import java.util.List;
+import java.util.Vector;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.ProjectionList;
+import org.hibernate.criterion.Projections;
+import org.hibernate.criterion.Restrictions;
+import org.hibernate.exception.ConstraintViolationException;
+import org.openmrs.Concept;
+import org.openmrs.PersonAttributeType;
+import org.openmrs.api.APIException;
+import org.openmrs.api.PersonService;
+import org.openmrs.api.context.Context;
+import org.openmrs.api.db.DAOException;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.DeIdentifiedExportDAO;
 
 /**
@@ -29,6 +44,50 @@ public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 	/**
      * @param sessionFactory the sessionFactory to set
      */
+	public ExportEntity saveRemovePersonAttrListDAO(ExportEntity exportEntity) throws DAOException, APIException
+	{
+		sessionFactory.getCurrentSession().save(exportEntity);
+		return exportEntity;
+	}
+	public ExportEntity saveConceptByCategory(ExportEntity e) throws DAOException, APIException {
+		try
+		{
+				sessionFactory.getCurrentSession().saveOrUpdate(e);
+		}catch(ConstraintViolationException c)
+		{
+			throw new APIException("Concept Already Exists");
+		}
+		
+		return e;
+	}
+
+	@Override
+	public java.util.List<String> getConceptByCategory(String category) {
+		
+		
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ExportEntity.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("elementId"));
+		c.setProjection(projList);
+
+		c.add(Restrictions.eq("category", category)).list();
+		
+		List<String> l = c.list();
+		
+		return l; 
+		
+		
+	}
+
+	@Override
+	public ExportEntity getConceptBySectionEntity(String category) {
+		// TODO Aut1-generated method stub
+		
+		
+		return (ExportEntity)sessionFactory.getCurrentSession().createCriteria(ExportEntity.class).add(Restrictions.eq("category",category)).list().get(0);
+	}
+    
     public void setSessionFactory(SessionFactory sessionFactory) {
 	    this.sessionFactory = sessionFactory;
     }

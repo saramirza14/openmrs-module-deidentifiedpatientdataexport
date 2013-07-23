@@ -13,6 +13,13 @@
  */
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db;
 
+import java.util.List;
+
+import org.openmrs.Concept;
+import org.openmrs.PersonAttributeType;
+import org.openmrs.api.APIException;
+import org.openmrs.api.db.DAOException;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService;
 
 /**
@@ -23,4 +30,8 @@ public interface DeIdentifiedExportDAO {
 	/*
 	 * Add DAO methods here
 	 */
+	public ExportEntity saveRemovePersonAttrListDAO(ExportEntity exportEntity) throws DAOException, APIException;
+	public ExportEntity saveConceptByCategory(ExportEntity e) throws DAOException, APIException;
+	public List<String> getConceptByCategory(String category);
+	public ExportEntity getConceptBySectionEntity(String category);
 }

@@ -13,14 +13,23 @@
 			   calling this script
 	</help>
 
-<!-- 
+
 	<diff>
 		<version>1.0-SNAPSHOT</version>
 		<author>Sara Fatima</author>
 		<date></date>
 		<description></description>
-		<sql></sql>
+		<sql>
+		 DROP TABLE IF EXISTS `openmrs`.`de_identified_patient_data_export_module`;
+CREATE TABLE  `openmrs`.`de_identified_patient_data_export_module` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `element_id` varchar(40) NOT NULL,
+  `category` varchar(45) NOT NULL,
+  `section_entity` varchar(45) NOT NULL,
+  PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+		</sql>
 	</diff>
- -->
+ 
 	
 </sqldiff>

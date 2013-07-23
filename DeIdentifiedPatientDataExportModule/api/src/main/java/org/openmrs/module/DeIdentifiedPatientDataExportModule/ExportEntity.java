@@ -25,6 +25,9 @@ public class ExportEntity extends BaseOpenmrsObject implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private Integer id;
+	private String sectionEntity;
+	private String category;
+	private String elementId;
 	
 	@Override
 	public Integer getId() {
@@ -36,4 +39,26 @@ public class ExportEntity extends BaseOpenmrsObject implements Serializable {
 		this.id = id;
 	}
 	
+	public String getElementId() {
+		return elementId;
+	}
+	
+	
+	public void setElementId(String elementId) {
+		this.elementId = elementId;
+	}
+	public String getSectionEntity() {
+		return sectionEntity;
+	}
+
+	public void setSectionEntity(String sectionEntity) {
+		this.sectionEntity = sectionEntity;
+	}
+	public String getCategory() {
+		return category;
+	}
+
+	public void setCategory(String category) {
+		this.category = category;
+	}
 }
