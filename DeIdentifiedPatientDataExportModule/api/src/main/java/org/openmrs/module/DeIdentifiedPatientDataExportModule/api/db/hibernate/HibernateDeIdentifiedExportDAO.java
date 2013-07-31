@@ -83,9 +83,14 @@ public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 	@Override
 	public ExportEntity getConceptBySectionEntity(String category) {
 		// TODO Aut1-generated method stub
-		
-		
-		return (ExportEntity)sessionFactory.getCurrentSession().createCriteria(ExportEntity.class).add(Restrictions.eq("category",category)).list().get(0);
+		ExportEntity e = new ExportEntity();
+		if(sessionFactory.getCurrentSession().createCriteria(ExportEntity.class).add(Restrictions.eq("category",category)).list().isEmpty()){
+			System.out.println("empty");
+		}
+		else{
+			e = (ExportEntity)sessionFactory.getCurrentSession().createCriteria(ExportEntity.class).add(Restrictions.eq("category",category)).list().get(0);
+		}
+		 return e;
 	}
     
     public void setSessionFactory(SessionFactory sessionFactory) {

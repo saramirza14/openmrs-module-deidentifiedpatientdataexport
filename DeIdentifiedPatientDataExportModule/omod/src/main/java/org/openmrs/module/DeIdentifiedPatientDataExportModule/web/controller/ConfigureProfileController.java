@@ -68,7 +68,6 @@ public class ConfigureProfileController {
 	public void displayPage(ModelMap modelMap, HttpServletRequest request) throws Exception {
 		
 		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
-		
 		List<PersonAttributeType> attributeTypeList = new Vector<PersonAttributeType>();
 		
 		//only fill the Object if the user has authenticated properly
@@ -76,20 +75,21 @@ public class ConfigureProfileController {
 			PersonService ps = Context.getPersonService();
 			attributeTypeList = ps.getAllPersonAttributeTypes(true);
 		}
+	
 		modelMap.addAttribute("personAttributeTypeList", attributeTypeList);
-		attributeTypeList = populateJsp();
+		attributeTypeList = d.getSavedPersonAttributeList();
 		modelMap.addAttribute("PersonAttribute", attributeTypeList);
 		 manageSections(request, "PersonAttribute");
 		manageSections(request, "Encounter");
-		List<Concept> l = populateEncounterSection();
+		List<Concept> l = d.populateConceptSection("Encounter");
 		modelMap.addAttribute("Encounter", l);
+		
 	}
 	
 	private void manageSections(HttpServletRequest request , String section)
 	{
 		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
 		String s = request.getParameter(section+"Counter");
-		System.out.println(s);
 		if(s!=null){
 			Integer j = Integer.parseInt(s);
 			List conceptIds = new ArrayList();
@@ -128,43 +128,8 @@ public class ConfigureProfileController {
 			 }
 		}
 		
-			
-		
-	}
-	private List<PersonAttributeType> populateJsp(){
-		PersonService ps = Context.getPersonService();
-		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
-		List<String> list = d.getConceptByCategory("PersonAttribute");
-		
-		List<PersonAttributeType> attributeTypeList = new Vector<PersonAttributeType>();
-		for(int i=0; i< list.size();i++){
-			char retval[] = list.get(i).toCharArray();
-			//Integer t= Integer.parseInt(list.get(i));
-			//attributeTypeList.add(ps.getPersonAttributeType(t));
-			for(int j=0; j<retval.length; j+=2)
-			{
-				Integer t= Character.getNumericValue(retval[j]);
-				attributeTypeList.add(ps.getPersonAttributeType(t));
-				System.out.println(ps.getPersonAttributeType(t));
-			}
-		}
-		return attributeTypeList;
 	}
 	
-	private List<Concept> populateEncounterSection(){
-		ConceptService cs = Context.getConceptService();
-		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
-		List<String> list = d.getConceptByCategory("Encounter");
-		Integer temp;
-		List<Concept> conceptList = new Vector<Concept>();
-		for(int i=0; i<list.size();i++){
-			for (String retval: list.get(i).split(",")){
-				temp = Integer.parseInt(retval);
-				conceptList.add(cs.getConcept(temp));
-				System.out.println(retval);
-	      }
-		}
-		return conceptList;
-	}
+	
 		
 }

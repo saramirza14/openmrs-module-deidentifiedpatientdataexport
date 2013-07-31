@@ -117,8 +117,9 @@ Select attributes:
 
 </span>
 </c:forEach>
- 
 </div>
+
+<br>
 
 
 <input type="submit" id="save" value='<spring:message code="general.save" />' />

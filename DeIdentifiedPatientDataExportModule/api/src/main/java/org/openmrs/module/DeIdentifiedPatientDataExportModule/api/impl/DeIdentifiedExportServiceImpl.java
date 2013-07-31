@@ -14,6 +14,7 @@
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api.impl;
 
 import org.openmrs.api.APIException;
+import org.openmrs.api.ConceptService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
@@ -27,6 +28,8 @@ import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedEx
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.RandomNameGenerator;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.DeIdentifiedExportDAO;
 import org.openmrs.Concept;
+import org.openmrs.ConceptMap;
+import org.openmrs.ConceptSource;
 import org.openmrs.Encounter;
 import org.openmrs.Location;
 import org.openmrs.Obs;
@@ -42,8 +45,10 @@ import org.openmrs.User;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 
 import java.io.File;
@@ -84,6 +89,9 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 * @param dao the dao to set
 	 */
 
+	/*
+	 * Returns the Original Obs List of patient
+	 */
 	private List<Obs> getOriginalObsList(Patient patient){
 		ObsService obsService = Context.getObsService();
 		List<Obs> originalObsList = obsService.getObservationsByPerson(patient);
@@ -92,6 +100,7 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 
 	public void extractPatientData(Patient patient, HttpServletResponse response){
 
+		List<PersonAttributeType> pat = getSavedPersonAttributeList();
 		List<Obs> ob = getOriginalObsList(patient);
 		List<Obs> obs = getEncountersOfPatient(patient,ob); //New obs list - updated
 
@@ -104,18 +113,21 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		//Remove patient identifier
 		patient=removePatientIdentifer(patient);
 
-		generatePatientXML(patient, response,obs);
+		//Set random patient identifier
+		patient = setPatientIdentifier(patient);
+
+		generatePatientXML(patient, response,obs,pat);
 
 	}
+
 	/*
 	 * gives relationships to be removed
-	 */
+
 	private Patient removeRelationships(Patient patient){
 		try{
 			List<Relationship> l=Context.getPersonService().getRelationshipsByPerson(patient);
 			for( Relationship r : l){
 				r.getRelationshipId();
-				System.out.println("remove these person relations ");
 			}
 		}
 		catch(APIException e){
@@ -124,8 +136,10 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 
 		return patient;	
 	}
+	 */
+
 	/*
-	 * randomizes encounter dates
+	 * Returns a List of Encounters with Randomized Dates
 	 */
 	private List<Encounter> randomizeEncounterDates(List<Obs> patientObsList){
 		Integer flag=0;
@@ -165,19 +179,16 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 				d.setDate(date);
 				en.get(i).setEncounterDatetime(d);
 				randomizedEncounterDateList.add(d);
-				System.out.println("Rnd en dates" + randomizedEncounterDateList.get(i));
-
-
 			}
 		}
 		catch(APIException e){
-			e.printStackTrace();
+			log.error("Exception in randomizing encounter dates", e);
 		}
 		return en;
 	}
 
-	/*This method removes 
-	 * all patient identifiers
+	/*
+	 * Returns patient object by removing all patient identifiers
 	 */
 	private Patient removePatientIdentifer(Patient patient){
 		Set<PatientIdentifier> s=patient.getIdentifiers();
@@ -185,7 +196,21 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			patient.removeIdentifier(pi);
 		return patient;
 	}
-	/*This method sets random patient DOB
+
+	/*
+	 * Returns Patient Object with random patient identifier
+	 */
+	private Patient setPatientIdentifier(Patient patient){
+		UUID u = new UUID(1,0);
+		UUID randomUUID = u.randomUUID();
+		PatientIdentifier pi = new PatientIdentifier();
+		pi.setIdentifier(randomUUID.toString());
+		patient.addIdentifier(pi);
+		return patient;
+	}
+
+	/*
+	 * Returns Patient object with random patient DOB
 	 */
 	private Patient setPatientDOB(Date date, Patient patient){
 		int year=date.getYear()+1900;
@@ -201,19 +226,25 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	}
 
 	/*
-	 * Generates random numbers betwwen a given range
+	 * Returns a random number between a given range
 	 */
 	private int randBetween(int start, int end) {
 		return start + (int)Math.round(Math.random() * (end - start));
 	}
 
 	/*
-	 * Sets random patient names
+	 * Returns Patient object by setting random patient names
 	 */
 	private Patient setRandomPatientNames(Patient patient){
 		patient = getName(patient);
 		return patient;
 	}
+
+	/*
+	 * Generates patient names
+	 * (non-Javadoc)
+	 * @see org.openmrs.module.DeIdentifiedPatientDataExportModule.api.RandomNameGenerator#getName(org.openmrs.Patient)
+	 */
 	public Patient getName(Patient patient){
 		Set<PersonName> s=patient.getNames();
 		PersonName p = PersonName.newInstance(patient.getPersonName());
@@ -228,14 +259,14 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		s.clear();
 		s.add(p);
 		patient.setNames(s);
-		System.out.println("name" +patient.getGivenName() +" "+ patient.getMiddleName() + " "+patient.getFamilyName());
 		return patient;
 
 	}
+
 	/*
-	 * Method to generate xml with all required data
+	 * Method to generate XML with all required data
 	 */
-	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs){
+	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs,  List<PersonAttributeType> pat){
 		response.setHeader( "Content-Disposition", "attachment;filename="+patient.getGivenName()+".xml");	
 		try {
 
@@ -263,19 +294,71 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			DOB.appendChild(doc.createTextNode(patient.getBirthdate().toString()));
 			pes.appendChild(DOB);
 
+			for(int i=0; i<pat.size();i++){
+
+				PersonAttribute pa = patient.getAttribute(pat.get(i));
+				String personAttributeType = pat.get(i).getName().toLowerCase().replaceAll("\\s","");
+
+				Element personAttribute = doc.createElement(personAttributeType);
+				personAttribute.appendChild(doc.createTextNode(pa.getValue().toString()));
+				pes.appendChild(personAttribute);
+			}
+
 			Element encounters = doc.createElement("encounters");
-			pes.appendChild(encounters);
+			p.appendChild(encounters);
+
+			List<ConceptSource> cs = getConceptMapping(obs);
 			for(int i=0; i<obs.size();i++){
 				Element encounter = doc.createElement("encounter");
 				encounters.appendChild(encounter);
-				System.out.println(obs.get(i).getLocation().getAddress1());
 				Element location = doc.createElement("encounter-location");
 				location.appendChild(doc.createTextNode(obs.get(i).getLocation().getAddress1()));
 				encounter.appendChild(location);
 				Element date = doc.createElement("encounter-date");
 				date.appendChild(doc.createTextNode(obs.get(i).getEncounter().getEncounterDatetime().toLocaleString().toString()));
 				encounter.appendChild(date);
+
+				Element observation = doc.createElement("observation");
+				encounter.appendChild(observation);
+				Element concept = doc.createElement("concept");
+				observation.appendChild(concept);
+				Element conceptId = doc.createElement("concept-id");
+				conceptId.appendChild(doc.createTextNode(obs.get(i).getConcept().toString()));
+				concept.appendChild(conceptId);
+
+				for(int j=0; j<cs.size();j++){
+					Element conceptSourceId = doc.createElement("concept-source-id");
+					conceptSourceId.appendChild(doc.createTextNode(cs.get(j).getHl7Code().toString()));
+					concept.appendChild(conceptSourceId);
+
+					Element conceptSource = doc.createElement("concept-source");
+					conceptSource.appendChild(doc.createTextNode(cs.get(j).getName().toString()));
+					concept.appendChild(conceptSource);
+				}
+
+				Element value = doc.createElement("value");
+				observation.appendChild(value);
+
+				if(obs.get(i).getValueCoded()!=null){
+					Element valueCoded = doc.createElement("value-coded");
+					valueCoded.appendChild(doc.createTextNode(obs.get(i).getValueCoded().toString()));
+					value.appendChild(valueCoded);
+				}
+
+				if(obs.get(i).getValueNumeric()!=null){
+					Element valueNumeric = doc.createElement("value-numeric");
+					valueNumeric.appendChild(doc.createTextNode(obs.get(i).getValueNumeric().toString()));
+					value.appendChild(valueNumeric);
+				}
+
+				if(obs.get(i).getValueBoolean()!=null){
+					Element valueBoolean = doc.createElement("value-boolean");
+					valueBoolean.appendChild(doc.createTextNode(obs.get(i).getValueBoolean().toString()));
+					value.appendChild(valueBoolean);
+				}
+
 			}
+
 			// Then write the doc into a StringWriter
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -296,18 +379,21 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("IO Exception in generating XML", e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Exception in generating XML", e);
 		}
 	}
 
-
-	//Save sections into database
-	private ExportEntity entity ;
+	/*
+	 *  saves current configuration 
+	 */
+	//private ExportEntity entity ;
 	public boolean saveConceptAsSections(List<Integer> concepts , String category) throws DAOException , APIException
 	{
+		ExportEntity entity = dao.getConceptBySectionEntity(category);
+
 		StringBuffer sb = new StringBuffer("");
 		char c=',';
 		for(int i = 0 ; i< concepts.size() ; i++)
@@ -315,39 +401,73 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			sb.append(concepts.get(i).toString());
 			sb.append(c);
 		}
-		entity = new ExportEntity();
+
 		entity.setElementId(sb.toString());
 		entity.setCategory(category);
-
 		entity.setSectionEntity(sb.toString() + category);
 		ExportEntity saved  = dao.saveConceptByCategory(entity);
 		return true;
 	}
 
+	/*
+	 * Returns List containing concept ids by category which are already saved
+	 * (non-Javadoc)
+	 * @see org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService#getConceptByCategory(java.lang.String)
+	 */
 	public List<String> getConceptByCategory(String category)
 	{
 		List<String> concept = dao.getConceptByCategory(category);
 		return concept;
 	}
-	private List<PersonAttributeType> getSavedPersonAttributeList(){
+
+	/*
+	 * Returns a list of Concepts which have been saved previously under a specific category
+	 */
+	public List<Concept> populateConceptSection(String category){
+		ConceptService cs = Context.getConceptService();
+		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
+		List<String> list = d.getConceptByCategory(category);
+		Integer temp;
+		List<Concept> conceptList = new Vector<Concept>();
+		for(int i=0; i<list.size();i++){
+			for (String retval: list.get(i).split(",")){
+				temp = Integer.parseInt(retval);
+				conceptList.add(cs.getConcept(temp));
+			}
+		}
+		Set set = new HashSet(conceptList);
+		List list1 = new ArrayList(set);
+		return list1;
+	}
+
+	/*
+	 * Returns List of personAttributeType which have been saved
+	 * @see org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService#getSavedPersonAttributeList()
+	 */
+	public List<PersonAttributeType> getSavedPersonAttributeList(){
 		PersonService ps = Context.getPersonService();
-		List<String> list = getConceptByCategory("PersonAttribute");
+		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
+		List<String> list = d.getConceptByCategory("PersonAttribute");
 
 		List<PersonAttributeType> attributeTypeList = new Vector<PersonAttributeType>();
 		for(int i=0; i< list.size();i++){
 			char retval[] = list.get(i).toCharArray();
-			//Integer t= Integer.parseInt(list.get(i));
-			//attributeTypeList.add(ps.getPersonAttributeType(t));
 			for(int j=0; j<retval.length; j+=2)
 			{
 				Integer t= Character.getNumericValue(retval[j]);
 				attributeTypeList.add(ps.getPersonAttributeType(t));
-				System.out.println(ps.getPersonAttributeType(t));
+
 			}
 		}
-		return attributeTypeList;
+		return attributeTypeList;	
 	}
-	//get random location
+
+
+	/*
+	 * Returns a String which is a random location
+	 * (non-Javadoc)
+	 * @see org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService#accessLocationPropFile()
+	 */
 	public String accessLocationPropFile(){
 		Properties prop = new Properties();
 		String loc="";
@@ -358,7 +478,7 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			loc = prop.getProperty(a.toString());
 
 		} catch (IOException ex) {
-			ex.printStackTrace();
+			log.error("IOException in accessing Location File", ex);
 		}
 		return loc;
 	}
@@ -367,39 +487,17 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		this.dao = dao;
 	}
 
+
 	/*
-	 * Return a list of concepts which user has configured as to not to export
-	 */
-	private List<Concept> getListOfRemoveConcept(String category){
-		List<String> stringListOfConcepts = getConceptByCategory(category); //getting ids from db
-		List<Concept> conceptListNotToBeExported= new ArrayList<Concept>(); 
-		Integer tempConceptId;	
-		for(int i=0; i<stringListOfConcepts.size();i++){
-			for (String retval:  stringListOfConcepts.get(i).split(","))
-			{
-				tempConceptId = Integer.parseInt(retval);
-				conceptListNotToBeExported.add(Context.getConceptService().getConcept(tempConceptId));
-			}
-		}
-		return conceptListNotToBeExported;
-	}
-	/*
-	 * This method returns new Obs List which need to be exported
+	 * Returns Obs List which need to be exported
+	 * All Obs minus Black listed Obs
+	 * for encounter section
 	 */
 	private List<Obs> getEncountersOfPatient(Patient patient, List<Obs> patientObsList){
 
 
-		//List from db
-		List<Concept> conceptListNotToBeExported = getListOfRemoveConcept("Encounter");
-		Set<Concept> removedDuplicateConceptList = new HashSet<Concept>(conceptListNotToBeExported);
+		patientObsList = getFinalObsList(patient, patientObsList, "Encounter");		
 
-		for(int k=0; k<patientObsList.size();k++){
-			Concept c = patientObsList.get(k).getConcept();
-			if(removedDuplicateConceptList.contains(c)){
-
-				patientObsList.remove(k);
-			}
-		}
 		List<Encounter> randomizedEncounterList = randomizeEncounterDates(patientObsList);
 		List<Date> randomizedEncounterDateList= new ArrayList<Date>();
 		for(Encounter e : randomizedEncounterList){
@@ -409,7 +507,6 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			Encounter e = patientObsList.get(i).getEncounter();
 			e.setEncounterDatetime(randomizedEncounterDateList.get(i));
 			patientObsList.get(i).setEncounter(e);
-			System.out.println(randomizedEncounterDateList.get(i));
 		}
 		for(int i=0; i<patientObsList.size();i++){
 			Location loc = new Location();
@@ -419,6 +516,45 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		return patientObsList;
 	}
 
+
+	/*
+	 * Method to get new patientObs list ie Original Patient Obs list minus the black list
+	 * for Obs section
+	 */
+	private List<Obs> getFinalObsList(Patient patient, List<Obs> patientObsList, String category){
+		List<Concept> conceptListNotToBeExported = populateConceptSection(category);
+		Set<Concept> removedDuplicateConceptList = new HashSet<Concept>(conceptListNotToBeExported);
+
+		for(int k=0; k<patientObsList.size();k++){
+			Concept c = patientObsList.get(k).getConcept();
+			if(removedDuplicateConceptList.contains(c)){
+
+				patientObsList.remove(k);
+			}
+		}
+		return patientObsList;
+	}
+
+	/*
+	 * Returns list of concept source for each obs
+	 */
+	private List<ConceptSource> getConceptMapping(List<Obs> patientObsList){
+		List<ConceptSource> conceptSourceList = new ArrayList<ConceptSource>();
+		for(Obs o : patientObsList){
+			Concept c = o.getConcept();
+			Collection<ConceptMap> conceptMap = c.getConceptMappings();
+			Iterator it;
+			it = conceptMap.iterator();
+			while(it.hasNext()){
+				ConceptMap cm = (ConceptMap) it.next();
+				Integer mapId = cm.getConceptMapId();
+				ConceptSource cs = cm.getSource();
+				conceptSourceList.add(cs);
+			}
+		}
+		return conceptSourceList;
+
+	}
 	/**
 	 * @return the dao
 	 */

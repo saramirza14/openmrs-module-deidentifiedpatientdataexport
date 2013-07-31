@@ -41,9 +41,11 @@ import org.openmrs.PersonAttributeType;
 @Transactional
 public interface DeIdentifiedExportService extends OpenmrsService {
      
-	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs);
+	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs, List<PersonAttributeType> pat);
 	public void extractPatientData(Patient patient, HttpServletResponse response);
 	public boolean saveConceptAsSections(List<Integer> concepts , String category) throws DAOException , APIException;
 	List<String> getConceptByCategory(String category);
 	public String accessLocationPropFile();
+	public List<PersonAttributeType> getSavedPersonAttributeList();
+	public List<Concept> populateConceptSection(String category);
 }
