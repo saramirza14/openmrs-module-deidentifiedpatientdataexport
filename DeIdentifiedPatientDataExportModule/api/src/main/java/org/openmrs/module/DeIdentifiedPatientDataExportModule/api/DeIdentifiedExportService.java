@@ -22,6 +22,7 @@ import org.openmrs.api.APIException;
 import org.openmrs.api.OpenmrsService;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ProfileName;
 import org.springframework.transaction.annotation.Transactional;
 import org.openmrs.Concept;
 import org.openmrs.Obs;
@@ -40,12 +41,21 @@ import org.openmrs.PersonAttributeType;
  */
 @Transactional
 public interface DeIdentifiedExportService extends OpenmrsService {
-     
-	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs, List<PersonAttributeType> pat);
-	public void extractPatientData(Patient patient, HttpServletResponse response);
+
+	public void generatePatientXML(HttpServletResponse response, List<PersonAttributeType> pat, List<Integer> ids, Integer pid);
+	public void extractPatientData(HttpServletResponse response, String ids, Integer pid);
 	public boolean saveConceptAsSections(List<Integer> concepts , String category) throws DAOException , APIException;
 	List<String> getConceptByCategory(String category);
 	public String accessLocationPropFile();
-	public List<PersonAttributeType> getSavedPersonAttributeList();
+	public List<PersonAttributeType> getSavedPersonAttributeList(Integer pid);
 	public List<Concept> populateConceptSection(String category);
+	public void exportJson(HttpServletResponse response, String ids, Integer pid);
+	public Integer getProfileIdByName(String pname);
+	public void exportCohort();
+	public void saveProfile(ProfileName p) throws DAOException, APIException;
+	public List<String> getProfiles();
+	public List<String> getProfileNames();
+	public List<String> getConceptsByCategoryByPid(String category, int id);
+	public List<Concept> getSavedObs(Integer pid);
+	public void generatePatientSQL(HttpServletResponse response, String ids, Integer pid);
 }

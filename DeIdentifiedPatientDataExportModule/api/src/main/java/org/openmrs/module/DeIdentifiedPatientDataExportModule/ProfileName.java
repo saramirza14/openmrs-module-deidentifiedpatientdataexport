@@ -20,65 +20,39 @@ import org.openmrs.BaseOpenmrsMetadata;
 /**
  * It is a model class. It should extend either {@link BaseOpenmrsObject} or {@link BaseOpenmrsMetadata}.
  */
-public class ExportEntity extends BaseOpenmrsObject implements Serializable {
+public class ProfileName extends BaseOpenmrsObject implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
-	private Integer id;
-	private String sectionEntity;
-	private String category;
-	private String elementId;
-	private String profileName;
 	private Integer pid;
-	
-	@Override
-	public Integer getId() {
-		return id;
-	}
-	
-	@Override
-	public void setId(Integer id) {
-		this.id = id;
-	}
+	private String profileName;
 	
 	public Integer getPid() {
 		return pid;
 	}
 	
-	
 	public void setPid(Integer pid) {
 		this.pid = pid;
 	}
 	
-	public String getElementId() {
-		return elementId;
-	}
-	
-	
-	public void setElementId(String elementId) {
-		this.elementId = elementId;
-	}
-	public String getSectionEntity() {
-		return sectionEntity;
-	}
-
-	public void setSectionEntity(String sectionEntity) {
-		this.sectionEntity = sectionEntity;
-	}
-	public String getCategory() {
-		return category;
-	}
-
-	public void setCategory(String category) {
-		this.category = category;
-	}
-	public String getProfileName() {
+		public String getProfileName() {
 		return profileName;
 	}
-	
-	
+		
 	public void setProfileName(String profileName) {
 		this.profileName = profileName;
+	}
+
+	@Override
+	public Integer getId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setId(Integer arg0) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

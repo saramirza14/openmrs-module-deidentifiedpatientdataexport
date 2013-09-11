@@ -31,6 +31,7 @@ import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ProfileName;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.DeIdentifiedExportDAO;
 
 /**
@@ -38,12 +39,17 @@ import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.DeIdentifie
  */
 public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 	protected final Log log = LogFactory.getLog(this.getClass());
-	
+
 	private SessionFactory sessionFactory;
-	
+
 	/**
-     * @param sessionFactory the sessionFactory to set
-     */
+	 * @param sessionFactory the sessionFactory to set
+	 */
+	public ProfileName saveProfileDAO(ProfileName profileName) throws DAOException, APIException
+	{
+		sessionFactory.getCurrentSession().save(profileName);
+		return profileName;
+	}
 	public ExportEntity saveRemovePersonAttrListDAO(ExportEntity exportEntity) throws DAOException, APIException
 	{
 		sessionFactory.getCurrentSession().save(exportEntity);
@@ -52,19 +58,19 @@ public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 	public ExportEntity saveConceptByCategory(ExportEntity e) throws DAOException, APIException {
 		try
 		{
-				sessionFactory.getCurrentSession().saveOrUpdate(e);
+			sessionFactory.getCurrentSession().saveOrUpdate(e);
 		}catch(ConstraintViolationException c)
 		{
 			throw new APIException("Concept Already Exists");
 		}
-		
+
 		return e;
 	}
 
 	@Override
 	public java.util.List<String> getConceptByCategory(String category) {
-		
-		
+
+
 		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ExportEntity.class);
 		ProjectionList projList =Projections.projectionList();
 
@@ -72,14 +78,95 @@ public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 		c.setProjection(projList);
 
 		c.add(Restrictions.eq("category", category)).list();
-		
+
 		List<String> l = c.list();
-		
+
 		return l; 
-		
-		
+
+
 	}
 
+	public List<String> getProfileNameById(Integer id) {
+
+
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ProfileName.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("profileName"));
+		c.setProjection(projList);
+
+		c.add(Restrictions.eq("pid", id)).list();
+
+		List<String> l = c.list();
+
+		return l; 
+
+
+	}
+
+	public List<String> getConceptsByCategoryByPid(String category, int id) {
+
+
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ExportEntity.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("elementId"));
+		c.setProjection(projList);
+
+		c.add(Restrictions.eq("pid", id)).list();
+		c.add(Restrictions.eq("category", category)).list();
+		List<String> l = c.list();
+
+		return l; 
+
+
+	}
+
+
+	public List<String> getProfileIdByName(String pname) {
+
+
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ProfileName.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("pid"));
+		c.setProjection(projList);
+
+		c.add(Restrictions.eq("profileName", pname)).list();
+
+		List<String> l = c.list();
+
+		return l; 
+
+
+	}
+	public java.util.List<String> getProfiles() {
+
+
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ProfileName.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("pid"));
+		c.setProjection(projList);
+
+		List<String> l = c.list();
+
+		return l; 
+	}
+
+	public List<String> getProfileNames() {
+
+
+		Criteria c =  sessionFactory.getCurrentSession().createCriteria(ProfileName.class);
+		ProjectionList projList =Projections.projectionList();
+
+		projList.add(Projections.property("profileName"));
+		c.setProjection(projList);
+
+		List<String> l = c.list();
+
+		return l; 
+	}
 	@Override
 	public ExportEntity getConceptBySectionEntity(String category) {
 		// TODO Aut1-generated method stub
@@ -90,17 +177,17 @@ public class HibernateDeIdentifiedExportDAO implements DeIdentifiedExportDAO {
 		else{
 			e = (ExportEntity)sessionFactory.getCurrentSession().createCriteria(ExportEntity.class).add(Restrictions.eq("category",category)).list().get(0);
 		}
-		 return e;
+		return e;
 	}
-    
-    public void setSessionFactory(SessionFactory sessionFactory) {
-	    this.sessionFactory = sessionFactory;
-    }
-    
+
+	public void setSessionFactory(SessionFactory sessionFactory) {
+		this.sessionFactory = sessionFactory;
+	}
+
 	/**
-     * @return the sessionFactory
-     */
-    public SessionFactory getSessionFactory() {
-	    return sessionFactory;
-    }
+	 * @return the sessionFactory
+	 */
+	public SessionFactory getSessionFactory() {
+		return sessionFactory;
+	}
 }

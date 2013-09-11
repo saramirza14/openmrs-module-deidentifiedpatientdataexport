@@ -5,19 +5,18 @@
 				code="admin.title.short" /></a></li>
 
 	<li
-		<c:if test='<%= request.getRequestURI().contains("/manage") %>'>class="active"</c:if>>
+		<c:if test='<%=request.getRequestURI().contains("/manage")%>'>class="active"</c:if>>
 		<a
 		href="${pageContext.request.contextPath}/module/DeIdentifiedPatientDataExportModule/createProfile.form"><spring:message
-				code="DeIdentifiedPatientDataExportModule.manage" /></a>
+				code="DeIdentifiedPatientDataExportModule.find" /></a>
 	</li>
 	<li
-		<c:if test='<%= request.getRequestURI().contains("/manage") %>'>class="active"</c:if>>
+		<c:if test='<%=request.getRequestURI().contains("/manage")%>'>class="active"</c:if>>
 		<a
 		href="${pageContext.request.contextPath}/module/DeIdentifiedPatientDataExportModule/configureProfile.form"><spring:message
 				code="DeIdentifiedPatientDataExportModule.configure" /></a>
 	</li>
 
-	
 	<!-- Add further links here -->
 </ul>
 <h2>

@@ -36,13 +36,15 @@ import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ProfileName;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.impl.DeIdentifiedExportServiceImpl;
 import org.openmrs.util.OpenmrsConstants;
 import org.openmrs.web.WebConstants;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.context.request.WebRequest;
@@ -65,31 +67,48 @@ public class ConfigureProfileController {
 	 */
 	@SuppressWarnings("unchecked")
 	@RequestMapping(method = RequestMethod.GET)
-	public void displayPage(ModelMap modelMap, HttpServletRequest request) throws Exception {
-		
+	public void displayPage(@ModelAttribute("profileName")
+    ProfileName profileName, BindingResult result, ModelMap modelMap, HttpServletRequest request) throws Exception {
+		manageProfileName(profileName, result, modelMap, request);
 		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
 		List<PersonAttributeType> attributeTypeList = new Vector<PersonAttributeType>();
-		
+		List<String> profileNames = new Vector<String>();
 		//only fill the Object if the user has authenticated properly
 		if (Context.isAuthenticated()) {
 			PersonService ps = Context.getPersonService();
 			attributeTypeList = ps.getAllPersonAttributeTypes(true);
+			
 		}
-	
+	 profileNames = d.getProfileNames();
+	 modelMap.addAttribute("pn", profileNames);
+	 
 		modelMap.addAttribute("personAttributeTypeList", attributeTypeList);
-		attributeTypeList = d.getSavedPersonAttributeList();
-		modelMap.addAttribute("PersonAttribute", attributeTypeList);
+		
 		 manageSections(request, "PersonAttribute");
 		manageSections(request, "Encounter");
 		List<Concept> l = d.populateConceptSection("Encounter");
-		modelMap.addAttribute("Encounter", l);
+		
+		
 		
 	}
 	
+	private void manageProfileName(@ModelAttribute("profileName")
+    ProfileName profileName, BindingResult result, ModelMap model, HttpServletRequest request){
+		
+		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
+		String pname=request.getParameter("profileName");
+		if(pname!=null){
+			profileName.setProfileName(pname);
+			System.out.println("reached profile naem");
+			d.saveProfile(profileName);
+		}
+		
+	}
 	private void manageSections(HttpServletRequest request , String section)
 	{
 		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
 		String s = request.getParameter(section+"Counter");
+		
 		if(s!=null){
 			Integer j = Integer.parseInt(s);
 			List conceptIds = new ArrayList();

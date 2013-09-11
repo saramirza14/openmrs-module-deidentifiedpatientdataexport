@@ -24,21 +24,21 @@ import org.openmrs.module.web.extension.AdministrationSectionExt;
  * "DeIdentifiedPatientDataExportModule.title" heading. 
  */
 public class AdminList extends AdministrationSectionExt {
-	
+
 	/**
 	 * @see AdministrationSectionExt#getMediaType()
 	 */
 	public Extension.MEDIA_TYPE getMediaType() {
 		return Extension.MEDIA_TYPE.html;
 	}
-	
+
 	/**
 	 * @see AdministrationSectionExt#getTitle()
 	 */
 	public String getTitle() {
 		return "DeIdentifiedPatientDataExportModule.title";
 	}
-	
+
 	/**
 	 * @see AdministrationSectionExt#getLinks()
 	 */
@@ -48,5 +48,5 @@ public class AdminList extends AdministrationSectionExt {
 		map.put("/module/DeIdentifiedPatientDataExportModule/configureProfile.form", "DeIdentifiedPatientDataExportModule.configure");
 		return map;
 	}
-	
+
 }

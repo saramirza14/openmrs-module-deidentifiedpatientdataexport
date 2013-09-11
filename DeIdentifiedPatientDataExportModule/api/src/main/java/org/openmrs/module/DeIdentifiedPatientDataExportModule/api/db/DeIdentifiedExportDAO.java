@@ -20,13 +20,14 @@ import org.openmrs.PersonAttributeType;
 import org.openmrs.api.APIException;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ProfileName;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService;
 
 /**
  *  Database methods for {@link DeIdentifiedExportService}.
  */
 public interface DeIdentifiedExportDAO {
-	
+
 	/*
 	 * Add DAO methods here
 	 */
@@ -34,4 +35,11 @@ public interface DeIdentifiedExportDAO {
 	public ExportEntity saveConceptByCategory(ExportEntity e) throws DAOException, APIException;
 	public List<String> getConceptByCategory(String category);
 	public ExportEntity getConceptBySectionEntity(String category);
+	public ProfileName saveProfileDAO(ProfileName profileName) throws DAOException, APIException;
+	public java.util.List<String> getProfiles();
+	public List<String> getProfileNameById(Integer id);
+	public List<String> getProfileNames();
+	public List<String> getProfileIdByName(String pname);
+	public List<String> getConceptsByCategoryByPid(String category, int id);
+
 }

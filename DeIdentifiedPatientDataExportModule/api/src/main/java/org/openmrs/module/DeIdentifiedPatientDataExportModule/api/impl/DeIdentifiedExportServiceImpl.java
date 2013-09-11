@@ -14,8 +14,10 @@
 package org.openmrs.module.DeIdentifiedPatientDataExportModule.api.impl;
 
 import org.openmrs.api.APIException;
+import org.openmrs.api.CohortService;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.ObsService;
+import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.DAOException;
@@ -24,9 +26,11 @@ import org.openmrs.api.impl.PersonServiceImpl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.ExportEntity;
+import org.openmrs.module.DeIdentifiedPatientDataExportModule.ProfileName;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.RandomNameGenerator;
 import org.openmrs.module.DeIdentifiedPatientDataExportModule.api.db.DeIdentifiedExportDAO;
+import org.openmrs.Cohort;
 import org.openmrs.Concept;
 import org.openmrs.ConceptMap;
 import org.openmrs.ConceptSource;
@@ -50,11 +54,17 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -71,10 +81,14 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import java.util.*;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.util.GregorianCalendar;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
 import org.openmrs.patient.impl.*;
+import org.openmrs.reporting.data.CohortDefinition;
 
 /**
  * It is a default implementation of {@link DeIdentifiedExportService}.
@@ -89,55 +103,144 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 * @param dao the dao to set
 	 */
 
+	public void saveProfile(ProfileName p) throws DAOException, APIException {
+
+		String pname_service=p.getProfileName();
+
+		//Calling DAO method 
+		ProfileName saved  = dao.saveProfileDAO(p);
+	}
+	public List<String> getProfiles(){
+		List<String> l = dao.getProfiles();
+		return l;
+	}
+	public List<String> getProfileNames(){
+		List<String> l = dao.getProfileNames();
+		return l;
+	}
+	public Integer getProfileIdByName(String pname){
+		List<String> l = dao.getProfileIdByName(pname);
+		Object id = l.get(0);
+		Integer a = (Integer)id;
+		return a;
+	}
 	/*
 	 * Returns the Original Obs List of patient
 	 */
-	private List<Obs> getOriginalObsList(Patient patient){
-		ObsService obsService = Context.getObsService();
-		List<Obs> originalObsList = obsService.getObservationsByPerson(patient);
-		return originalObsList;
-	}
-
-	public void extractPatientData(Patient patient, HttpServletResponse response){
-
-		List<PersonAttributeType> pat = getSavedPersonAttributeList();
-		List<Obs> ob = getOriginalObsList(patient);
-		List<Obs> obs = getEncountersOfPatient(patient,ob); //New obs list - updated
-
-		//Setting patient name 
-		patient=setRandomPatientNames(patient);
-
-		//Set patient DOB
-		patient = setPatientDOB(patient.getBirthdate(), patient);
-
-		//Remove patient identifier
-		patient=removePatientIdentifer(patient);
-
-		//Set random patient identifier
-		patient = setPatientIdentifier(patient);
-
-		generatePatientXML(patient, response,obs,pat);
-
-	}
-
-	/*
-	 * gives relationships to be removed
-
-	private Patient removeRelationships(Patient patient){
+	private List<Obs> getOriginalObsList(Patient patient, ObsService obsService){
+		List<Obs> originalObsList = new ArrayList<Obs>();
 		try{
-			List<Relationship> l=Context.getPersonService().getRelationshipsByPerson(patient);
-			for( Relationship r : l){
-				r.getRelationshipId();
-			}
+			originalObsList =	obsService.getObservationsByPerson(patient);
 		}
 		catch(APIException e){
 			e.printStackTrace();
 		}
-
-		return patient;	
+		catch(Exception ex){
+			ex.printStackTrace();
+		}
+		return originalObsList;
 	}
-	 */
+	public void extractPatientData( HttpServletResponse response, String ids, Integer pid){
+		List<PersonAttributeType> pat = getSavedPersonAttributeList(pid);
+		List<Integer> idsList = multipleIds(ids);
+		List<Concept> clist = getSavedObs(pid);
+		List<Integer> l = multipleIds(ids);
+		generatePatientXML( response,pat, l, pid);
+	}
 
+	public void exportCohort(){
+		CohortService cs = Context.getCohortService();
+		List<Cohort> c = cs.getAllCohorts();
+		List<Cohort> cc = cs.getCohorts();
+		for(int i=0; i<cc.size();i++){
+			System.out.println(cc.get(i).getName());
+
+		}
+	}
+	
+	public void exportJson(HttpServletResponse response, String ids, Integer pid){
+		response.setContentType("application/octet-stream");
+		response.setHeader( "Content-Disposition", "attachment;filename=patientExportSummary.json");	
+		List<PersonAttributeType> pat = getSavedPersonAttributeList(pid);
+		JSONObject obj = new JSONObject();
+		JSONObject patientExportSummary = new JSONObject();
+		JSONArray patients = new JSONArray();
+		JSONObject patient = new JSONObject();
+		List<Integer> idsList = multipleIds(ids);
+		PatientService ps = Context.getPatientService();
+		for(int j=0 ; j<idsList.size();j++){
+			Patient pt = ps.getPatient(idsList.get(j));
+			Map patientDemographicData = new HashMap();
+			for(int i=0; i<pat.size();i++){
+				PersonAttribute pa = pt.getAttribute(pat.get(i));
+				if(pa!=null)
+					patientDemographicData.put(pat.get(i).getName() , pa.getValue());
+			}
+			patientDemographicData.put("dob",pt.getBirthdate().toString());
+			pt= setRandomPatientNames(pt);
+			patientDemographicData.put("name",pt.getGivenName().toString() + " " + pt.getMiddleName().toString() + " " + pt.getFamilyName().toString());
+
+			List<Obs> obs1 =  new ArrayList<Obs>();
+			Context.clearSession();
+			ObsService obsService = Context.getObsService();
+			List<Obs> ob = getOriginalObsList(pt, obsService);
+			obs1 = getEncountersOfPatient(pt,ob,pid); //New obs list - updated
+			List<ConceptSource> cs = getConceptMapping(obs1);
+			for(int i=0; i<obs1.size();i++){
+				Map encounters = new HashMap();
+				JSONArray en = new JSONArray();
+				JSONObject enObj = new JSONObject();
+				en.add(enObj);
+				encounters.put("observations", en);
+				JSONObject conceptObj = new JSONObject();
+				JSONObject valueObj = new JSONObject();
+				JSONObject vObj = new JSONObject();
+				en.add(vObj);
+				conceptObj.put("concept", enObj);
+				valueObj.put("value",vObj);
+				for(int k=0; k<cs.size();k++){
+					if(obs1.get(i).getValueCoded()!=null){
+						vObj.put("valueCoded", obs1.get(i).getValueCoded().toString());
+					}
+					else if(obs1.get(i).getValueBoolean()!=null){
+						vObj.put("valueCoded", obs1.get(i).getValueBoolean().toString());
+					}
+					enObj.put("conceptSourceId", cs.get(k).getHl7Code().toString());
+					enObj.put("conceptSource", cs.get(k).getName().toString());
+				}
+				enObj.put("conceptID", obs1.get(i).getConcept().toString());
+				encounters.put("encounterDate", obs1.get(i).getEncounter().getEncounterDatetime().toLocaleString().toString());
+				encounters.put("encounterLocation", obs1.get(i).getLocation().getAddress1().toString());
+				patients.add(encounters);
+			}
+			patients.add(patientDemographicData);
+		}
+		patientExportSummary.put("patients", patients);
+		obj.put("patientExportSummary", patientExportSummary);
+		try {
+
+			FileWriter file = new FileWriter("c:\\test1.json");
+			file.write(obj.toJSONString());
+			file.flush();
+			file.close();
+			File f = new File("c:\\test1.json");
+			FileInputStream fileIn = new FileInputStream(f);
+			ServletOutputStream out = response.getOutputStream();
+			byte[] outputByte = new byte[4096];
+			//copy binary contect to output stream
+			while(fileIn.read(outputByte, 0, 4096) != -1)
+			{
+				out.write(outputByte, 0, 4096);
+			}
+			fileIn.close();
+			out.flush();
+			out.close();
+
+		} catch (IOException e) {
+
+			e.printStackTrace();
+		}
+	}
 	/*
 	 * Returns a List of Encounters with Randomized Dates
 	 */
@@ -191,9 +294,14 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 * Returns patient object by removing all patient identifiers
 	 */
 	private Patient removePatientIdentifer(Patient patient){
-		Set<PatientIdentifier> s=patient.getIdentifiers();
-		for(PatientIdentifier pi : s)
-			patient.removeIdentifier(pi);
+		try{
+			Set<PatientIdentifier> s=patient.getIdentifiers();
+			for(PatientIdentifier pi : s)
+				patient.removeIdentifier(pi);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
 		return patient;
 	}
 
@@ -202,10 +310,15 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 */
 	private Patient setPatientIdentifier(Patient patient){
 		UUID u = new UUID(1,0);
-		UUID randomUUID = u.randomUUID();
-		PatientIdentifier pi = new PatientIdentifier();
-		pi.setIdentifier(randomUUID.toString());
-		patient.addIdentifier(pi);
+		try{
+			UUID randomUUID = u.randomUUID();
+			PatientIdentifier pi = new PatientIdentifier();
+			pi.setIdentifier(randomUUID.toString());
+			patient.addIdentifier(pi);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
 		return patient;
 	}
 
@@ -262,12 +375,123 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		return patient;
 
 	}
+	private List<Integer> multipleIds(String ids){
+		Integer temp;
+		List<Integer> multipleIds = new ArrayList<Integer>();
+		for (String retval: ids.split(",")){
+			temp = Integer.parseInt(retval);
+			multipleIds.add(temp);
+
+		}
+		return multipleIds;
+	}
 
 	/*
 	 * Method to generate XML with all required data
 	 */
-	public void generatePatientXML(Patient patient, HttpServletResponse response, List<Obs> obs,  List<PersonAttributeType> pat){
-		response.setHeader( "Content-Disposition", "attachment;filename="+patient.getGivenName()+".xml");	
+
+	public void generatePatientSQL(HttpServletResponse response, String ids, Integer pid){
+		response.setHeader( "Content-Disposition", "attachment;filename="+"patientExportSummary"+".sql");
+		try{
+			StringBuffer sb = new StringBuffer("");
+
+			List<PersonAttributeType> pat = getSavedPersonAttributeList(pid);
+			List<Integer> idsList = multipleIds(ids);
+			PatientService ps = Context.getPatientService();
+			for(int j=0 ; j<idsList.size();j++){
+				Patient pt = ps.getPatient(idsList.get(j));
+				for(int i=0; i<pat.size();i++){
+					PersonAttribute pa = pt.getAttribute(pat.get(i));
+					if(pa!=null)
+					{
+						sb.append("insert into person_attribute (person_id, value,person_attribute_type_id,creator,date_created,changed_by,date_changed,voided, voided_by,date_voided, void_reason,uuid ) values(");
+						DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+						Date d = new Date();
+						sb.append( pt.getId().toString()+ ",'" + pa.getValue().toString()+ "',"  + pat.get(i).getId().toString() + ","+ "1"+ ",'" +dateFormat.format(d) +"',null,null,0,null,null,null,null" +" );\n\n" );
+						sb.append("");
+					}
+				}	
+				DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+				Date date = new Date();
+
+				sb.append("insert into person_name (preferred,person_id,prefix,given_name, middle_name,family_name_prefix,family_name, family_name2, family_name_suffix, degree, creator, date_created,voided, voided_by,date_voided, void_reason,changed_by,date_changed, uuid ) values(");
+				sb.append("1," + pt.getId().toString()+ "," + "null"  +",'" + pt.getGivenName().toString()+ "','" + pt.getMiddleName().toString() + "'," +"null" + ",'" +pt.getFamilyName() +"'," +"null" +"," + "null" +"," + "null" + "," +"1" +",'" + dateFormat.format(date) + "',0,null,null,null,null,null,null," + " );\n\n" );
+				sb.append("");
+
+				sb.append("insert into person (gender,birthdate, birthdate_estimated,dead,death_date,cause_of_death,creator, date_created,changed_by,date_changed,voided, voided_by,date_voided, void_reason, uuid,deathdate_estimated) values(");
+				sb.append( "'" + pt.getGender().toString() +"','" + pt.getBirthdate().toString() +  "',0,0,null,null,1,'");
+				sb.append(dateFormat.format(date)+ "',null,null,0,null,null,null,null,0" +  ");\n\n" );
+				sb.append("");
+
+
+				List<Obs> obs1 =  new ArrayList<Obs>();
+				Context.clearSession();
+				ObsService obsService = Context.getObsService();
+				List<Obs> ob = getOriginalObsList(pt, obsService);
+				obs1 = getEncountersOfPatient(pt,ob,pid); //New obs list - updated
+				List<ConceptSource> cs = getConceptMapping(obs1);
+				for(int i=0; i<obs1.size();i++){
+
+
+					sb.append("insert into obs (person_id,concept_id, encounter_id, order_id, obs_datetime, location_id, obs_group_id, accession_number, value_group_id,value_boolean,value_coded, value_coded_name_id,value_drug,value_datetime,value_numeric,value_modifier,value_text,value_complex, comments, creator, date_created,voided, voided_by,date_voided, void_reason, uuid,previous_version) values(");
+					sb.append(pt.getId().toString() );
+					sb.append("," + obs1.get(i).getConcept().getConceptId().toString());
+					sb.append("," + obs1.get(i).getEncounter().getEncounterId().toString());
+					sb.append( ",null,'" + obs1.get(i).getObsDatetime().toString() );
+					sb.append( "',null,null,null,null," );
+					if(obs1.get(i).getValueBoolean() != null)
+						sb.append(obs1.get(i).getValueBoolean().toString());
+					else
+						sb.append("null");
+					sb.append( "," );
+					if(obs1.get(i).getValueCoded() != null)
+						sb.append(obs1.get(i).getValueCoded().toString());
+					else
+						sb.append("null");
+
+
+					sb.append(",null,null,null," );
+					if(obs1.get(i).getValueNumeric() != null)
+						sb.append(obs1.get(i).getValueNumeric().toString());
+					else
+						sb.append("null");
+
+					sb.append( ",null,null,null,null,1,'" + dateFormat.format(date) +"',0,null,null,null,null,null"  +  " );\n\n" );
+					sb.append("");
+
+
+					sb.append("insert into encounter (encounter_type, patient_id, location_id, form_id, encounter_datetime, creator, date_created,voided, voided_by,date_voided, void_reason, changed_by, date_changed,visit_id, uuid) values(");
+					sb.append(obs1.get(i).getEncounter().getEncounterType().getEncounterTypeId().toString() + ",");
+					sb.append(pt.getId().toString() + ",null,null,'");
+					sb.append(dateFormat.format(obs1.get(i).getEncounter().getEncounterDatetime()).toString() + "',1,'");
+					sb.append(dateFormat.format(date) + "',0,null,null,null,null,null,null,null);\n\n");
+					sb.append("");
+
+				}
+
+			}
+			String a = sb.toString();
+			// Finally, send the response
+			byte[] res = a.getBytes(Charset.forName("UTF-8"));
+			response.setCharacterEncoding("UTF-8");
+			response.getOutputStream().write(res);
+			response.flushBuffer();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			log.error("IO Exception in generating SQL", e);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			log.error("Exception in generating SQL", e);
+		}
+
+	}
+
+	public void generatePatientXML(HttpServletResponse response,   List<PersonAttributeType> pat, List<Integer> ids, Integer pid){
+
+
+		response.setHeader( "Content-Disposition", "attachment;filename="+"patientExportSummary"+".xml");	
+
 		try {
 
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -280,85 +504,93 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			Element patients = doc.createElement("patients");
 			rootElement.appendChild(patients);
 
-			Element p = doc.createElement("patient");
-			patients.appendChild(p);
+			for(int k=0; k<ids.size();k++){
+				Element pp = doc.createElement("patient-" + ids.get(k).toString());
+				patients.appendChild(pp);
 
-			Element pes = doc.createElement("patient-demographic-data");
-			p.appendChild(pes);
+				Element pes1 = doc.createElement("patient-demographic-data");
+				pp.appendChild(pes1);
 
-			Element name = doc.createElement("name");
-			name.appendChild(doc.createTextNode(patient.getGivenName() + " " + patient.getMiddleName() + " "+ patient.getFamilyName()));
-			pes.appendChild(name);
+				Element name1 = doc.createElement("name");
+				PatientService ps = Context.getPatientService();
+				Patient patient1 = ps.getPatient(ids.get(k));
+				patient1=setRandomPatientNames(patient1);
+				name1.appendChild(doc.createTextNode(patient1.getGivenName() + " " + patient1.getMiddleName() + " "+ patient1.getFamilyName()));
+				pes1.appendChild(name1);
 
-			Element DOB = doc.createElement("DOB");
-			DOB.appendChild(doc.createTextNode(patient.getBirthdate().toString()));
-			pes.appendChild(DOB);
+				patient1 = setPatientDOB(patient1.getBirthdate(), patient1);
+				Element DOB1 = doc.createElement("DOB");
+				DOB1.appendChild(doc.createTextNode(patient1.getBirthdate().toString()));
+				pes1.appendChild(DOB1);
 
-			for(int i=0; i<pat.size();i++){
+				for(int i=0; i<pat.size();i++){
 
-				PersonAttribute pa = patient.getAttribute(pat.get(i));
-				String personAttributeType = pat.get(i).getName().toLowerCase().replaceAll("\\s","");
+					PersonAttribute pa = patient1.getAttribute(pat.get(i));
+					String personAttributeType = pat.get(i).getName().toLowerCase().replaceAll("\\s","");
+					if(personAttributeType.contains("mother's")){
+						personAttributeType = "mother-name";
+					}
 
-				Element personAttribute = doc.createElement(personAttributeType);
-				personAttribute.appendChild(doc.createTextNode(pa.getValue().toString()));
-				pes.appendChild(personAttribute);
+					Element personAttribute1 = doc.createElement(personAttributeType);
+					personAttribute1.appendChild(doc.createTextNode(pa.getValue().toString()));
+					pes1.appendChild(personAttribute1);
+				}
+				List<Obs> obs1 =  new ArrayList<Obs>();
+				Context.clearSession();
+				ObsService obsService = Context.getObsService();
+				Patient p1 = ps.getPatient(ids.get(k));
+				List<Obs> ob = getOriginalObsList(p1, obsService);
+				obs1 = getEncountersOfPatient(p1,ob, pid); //New obs list - updated
+				Element encounters = doc.createElement("encounters");
+				pp.appendChild(encounters);
+				List<ConceptSource> cs = getConceptMapping(obs1);
+				for(int i=0; i<obs1.size();i++){
+					Element encounter = doc.createElement("encounter");
+					encounters.appendChild(encounter);
+					Element location = doc.createElement("encounter-location");
+					location.appendChild(doc.createTextNode(obs1.get(i).getLocation().getAddress1()));
+					encounter.appendChild(location);
+					Element date = doc.createElement("encounter-date");
+					date.appendChild(doc.createTextNode(obs1.get(i).getEncounter().getEncounterDatetime().toLocaleString().toString()));
+					encounter.appendChild(date);
+					Element observation = doc.createElement("observation");
+					encounter.appendChild(observation);
+					Element concept = doc.createElement("concept");
+					observation.appendChild(concept);
+					Element conceptId = doc.createElement("concept-id");
+					conceptId.appendChild(doc.createTextNode(obs1.get(i).getConcept().toString()));
+					concept.appendChild(conceptId);
+
+					for(int j=0; j<cs.size();j++){
+						Element conceptSourceId = doc.createElement("concept-source-id");
+						conceptSourceId.appendChild(doc.createTextNode(cs.get(j).getHl7Code().toString()));
+						concept.appendChild(conceptSourceId);
+						Element conceptSource = doc.createElement("concept-source");
+						conceptSource.appendChild(doc.createTextNode(cs.get(j).getName().toString()));
+						concept.appendChild(conceptSource);
+					}
+
+					Element value = doc.createElement("value");
+					observation.appendChild(value);
+					if(obs1.get(i).getValueCoded()!=null){
+						Element valueCoded = doc.createElement("value-coded");
+						valueCoded.appendChild(doc.createTextNode(obs1.get(i).getValueCoded().toString()));
+						value.appendChild(valueCoded);
+					}
+					if(obs1.get(i).getValueNumeric()!=null){
+						Element valueNumeric = doc.createElement("value-numeric");
+						valueNumeric.appendChild(doc.createTextNode(obs1.get(i).getValueNumeric().toString()));
+						value.appendChild(valueNumeric);
+					}
+					if(obs1.get(i).getValueBoolean()!=null){
+						Element valueBoolean = doc.createElement("value-boolean");
+						valueBoolean.appendChild(doc.createTextNode(obs1.get(i).getValueBoolean().toString()));
+						value.appendChild(valueBoolean);
+					}
+
+				}
+
 			}
-
-			Element encounters = doc.createElement("encounters");
-			p.appendChild(encounters);
-
-			List<ConceptSource> cs = getConceptMapping(obs);
-			for(int i=0; i<obs.size();i++){
-				Element encounter = doc.createElement("encounter");
-				encounters.appendChild(encounter);
-				Element location = doc.createElement("encounter-location");
-				location.appendChild(doc.createTextNode(obs.get(i).getLocation().getAddress1()));
-				encounter.appendChild(location);
-				Element date = doc.createElement("encounter-date");
-				date.appendChild(doc.createTextNode(obs.get(i).getEncounter().getEncounterDatetime().toLocaleString().toString()));
-				encounter.appendChild(date);
-
-				Element observation = doc.createElement("observation");
-				encounter.appendChild(observation);
-				Element concept = doc.createElement("concept");
-				observation.appendChild(concept);
-				Element conceptId = doc.createElement("concept-id");
-				conceptId.appendChild(doc.createTextNode(obs.get(i).getConcept().toString()));
-				concept.appendChild(conceptId);
-
-				for(int j=0; j<cs.size();j++){
-					Element conceptSourceId = doc.createElement("concept-source-id");
-					conceptSourceId.appendChild(doc.createTextNode(cs.get(j).getHl7Code().toString()));
-					concept.appendChild(conceptSourceId);
-
-					Element conceptSource = doc.createElement("concept-source");
-					conceptSource.appendChild(doc.createTextNode(cs.get(j).getName().toString()));
-					concept.appendChild(conceptSource);
-				}
-
-				Element value = doc.createElement("value");
-				observation.appendChild(value);
-
-				if(obs.get(i).getValueCoded()!=null){
-					Element valueCoded = doc.createElement("value-coded");
-					valueCoded.appendChild(doc.createTextNode(obs.get(i).getValueCoded().toString()));
-					value.appendChild(valueCoded);
-				}
-
-				if(obs.get(i).getValueNumeric()!=null){
-					Element valueNumeric = doc.createElement("value-numeric");
-					valueNumeric.appendChild(doc.createTextNode(obs.get(i).getValueNumeric().toString()));
-					value.appendChild(valueNumeric);
-				}
-
-				if(obs.get(i).getValueBoolean()!=null){
-					Element valueBoolean = doc.createElement("value-boolean");
-					valueBoolean.appendChild(doc.createTextNode(obs.get(i).getValueBoolean().toString()));
-					value.appendChild(valueBoolean);
-				}
-
-			}
-
 			// Then write the doc into a StringWriter
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -389,11 +621,17 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	/*
 	 *  saves current configuration 
 	 */
-	//private ExportEntity entity ;
+
 	public boolean saveConceptAsSections(List<Integer> concepts , String category) throws DAOException , APIException
 	{
-		ExportEntity entity = dao.getConceptBySectionEntity(category);
-
+		//ExportEntity entity = dao.getConceptBySectionEntity(category);
+		ExportEntity entity = new ExportEntity();
+		List<String> k = dao.getProfileNameById(6);
+		List<String> l = new ArrayList<String>();
+		l= dao.getProfiles();
+		Object x = l.get(l.size()-1);
+		Integer pos = l.size();
+		Integer pid = (Integer)x;
 		StringBuffer sb = new StringBuffer("");
 		char c=',';
 		for(int i = 0 ; i< concepts.size() ; i++)
@@ -405,7 +643,9 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		entity.setElementId(sb.toString());
 		entity.setCategory(category);
 		entity.setSectionEntity(sb.toString() + category);
+		entity.setPid(pid);
 		ExportEntity saved  = dao.saveConceptByCategory(entity);
+
 		return true;
 	}
 
@@ -439,15 +679,22 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 		List list1 = new ArrayList(set);
 		return list1;
 	}
+	public List<String> getConceptsByCategoryByPid(String category, int id){
+		List<String> l = new Vector<String>();
+		l=dao.getConceptsByCategoryByPid(category, id);
+		return l;
+	}
 
 	/*
 	 * Returns List of personAttributeType which have been saved
 	 * @see org.openmrs.module.DeIdentifiedPatientDataExportModule.api.DeIdentifiedExportService#getSavedPersonAttributeList()
 	 */
-	public List<PersonAttributeType> getSavedPersonAttributeList(){
+
+
+	public List<PersonAttributeType> getSavedPersonAttributeList(Integer pid){
 		PersonService ps = Context.getPersonService();
 		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
-		List<String> list = d.getConceptByCategory("PersonAttribute");
+		List<String> list = d.getConceptsByCategoryByPid("PersonAttribute", pid);
 
 		List<PersonAttributeType> attributeTypeList = new Vector<PersonAttributeType>();
 		for(int i=0; i< list.size();i++){
@@ -460,6 +707,20 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 			}
 		}
 		return attributeTypeList;	
+	}
+
+	public List<Concept> getSavedObs(Integer pid){
+		ConceptService cs = Context.getConceptService();
+		DeIdentifiedExportService d = Context.getService(DeIdentifiedExportService.class);
+		List<String> list = d.getConceptsByCategoryByPid("Encounter", pid);
+		List<Concept> clist = new ArrayList<Concept>();
+		String a = list.get(0);
+		String splitted[] = a.split(",");
+		for(int i=0; i<splitted.length;i++){
+			Integer t = Integer.parseInt(splitted[i]);
+			clist.add(cs.getConcept(t));
+		}
+		return clist;
 	}
 
 
@@ -493,11 +754,8 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 * All Obs minus Black listed Obs
 	 * for encounter section
 	 */
-	private List<Obs> getEncountersOfPatient(Patient patient, List<Obs> patientObsList){
-
-
-		patientObsList = getFinalObsList(patient, patientObsList, "Encounter");		
-
+	private List<Obs> getEncountersOfPatient(Patient patient, List<Obs> patientObsList, Integer pid){
+		patientObsList = getFinalObsList(patient, patientObsList, pid);		
 		List<Encounter> randomizedEncounterList = randomizeEncounterDates(patientObsList);
 		List<Date> randomizedEncounterDateList= new ArrayList<Date>();
 		for(Encounter e : randomizedEncounterList){
@@ -521,14 +779,12 @@ public class DeIdentifiedExportServiceImpl extends BaseOpenmrsService implements
 	 * Method to get new patientObs list ie Original Patient Obs list minus the black list
 	 * for Obs section
 	 */
-	private List<Obs> getFinalObsList(Patient patient, List<Obs> patientObsList, String category){
-		List<Concept> conceptListNotToBeExported = populateConceptSection(category);
+	private List<Obs> getFinalObsList(Patient patient, List<Obs> patientObsList,  Integer pid){
+		List<Concept> conceptListNotToBeExported = getSavedObs(pid);
 		Set<Concept> removedDuplicateConceptList = new HashSet<Concept>(conceptListNotToBeExported);
-
 		for(int k=0; k<patientObsList.size();k++){
 			Concept c = patientObsList.get(k).getConcept();
 			if(removedDuplicateConceptList.contains(c)){
-
 				patientObsList.remove(k);
 			}
 		}

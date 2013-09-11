@@ -15,7 +15,8 @@
 		<property name ="elementId" type="java.lang.String" length="40" column="element_id"/>
 		<property name="sectionEntity" type="java.lang.String" unique="true" column="section_entity" />
 			<property name ="category" type="java.lang.String" length="40" column="category"/>
+				<property name ="pid" type="int" length="10" column="pid"/>
 	</class>
 
-
+	
 </hibernate-mapping>

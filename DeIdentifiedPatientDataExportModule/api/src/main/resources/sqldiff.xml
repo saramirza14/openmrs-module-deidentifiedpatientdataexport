@@ -26,8 +26,19 @@ CREATE TABLE  `openmrs`.`de_identified_patient_data_export_module` (
   `element_id` varchar(40) NOT NULL,
   `category` varchar(45) NOT NULL,
   `section_entity` varchar(45) NOT NULL,
+  `pid` int(10) unsigned,
   PRIMARY KEY (`id`)
+  FOREIGN KEY (`pid`) REFERENCES profile_name(`pid`)
     ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+    
+    
+    	 DROP TABLE IF EXISTS `openmrs`.`profile_name`;
+CREATE TABLE  `openmrs`.`profile_name` (
+  `pid` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `profile_name` varchar(40) NOT NULL UNIQUE,
+  PRIMARY KEY (`pid`)
+    ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+    
 		</sql>
 	</diff>
  
